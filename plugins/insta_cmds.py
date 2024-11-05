@@ -61,9 +61,9 @@ channels = {
     # "@telegram_channel_2": "instagram_page_2",
     # Add more Instagram page - Telegram channel pairs as needed
 }
+
 def download_latest_reel(username):
     profile = Profile.from_username(insta.context, username)
-    # profile = insta.Profile.from_username(L.context, username)
     for post in profile.get_posts():
         if post.is_video:
             video_path = f"reels/{username}/{post.shortcode}.mp4"
@@ -73,27 +73,23 @@ def download_latest_reel(username):
                 return video_path
     return None
 
-def post_reel_to_telegram(bot, channel_username, video_path, caption):
-    with bot:
+async def post_reel_to_telegram(bot, channel_username, video_path, caption):
+    async with bot:  # Use async with for bot context
         try:
-            bot.send_video(channel_username, video_path, caption=caption)
+            await bot.send_video(channel_username, video_path, caption=caption)  # Use await here
             print(f"Reel posted to {channel_username}")
         except FloodWait as e:
             print(f"Rate limit hit! Waiting for {e.x} seconds.")
-            time.sleep(e.x)
+            await asyncio.sleep(e.x)  # Use asyncio.sleep for async waiting
 
 @Client.on_message(filters.command("automate") & filters.private)
 async def automate_reels_posting(bot, message):
     for channel, insta_page in channels.items():
         video_path = download_latest_reel(insta_page)
         if video_path:
-            post_reel_to_telegram(bot,channel, video_path, f"New reel from @{insta_page}!")
+            await post_reel_to_telegram(bot, channel, video_path, f"New reel from @{insta_page}!")  # Use await
         else:
             print(f"No new reel found for {insta_page}")
-
-# Define dictionary of Instagram pages to Telegram channels
-
-
 
 
 @Client.on_message(filters.command("posts") & filters.private)
