@@ -66,6 +66,65 @@ channels = {
 }
 
 
+from pyrogram import Client, filters
+from instaloader import Instaloader, Profile
+import os
+
+USER = Config.USER
+insta = Instaloader()
+
+@Client.on_message(filters.command("scrap") & filters.private)
+async def scrap_reels(bot, message):
+    if str(message.from_user.id) != OWNER:
+        await message.reply_text("You are not authorized to use this command.")
+        return
+
+    # Get the command arguments
+    command_args = message.command[1:]
+    if len(command_args) != 2:
+        await message.reply_text("Usage: /scrap {username} {no_of_reels}")
+        return
+
+    target_username = command_args[0]
+    try:
+        no_of_reels = int(command_args[1])
+    except ValueError:
+        await message.reply_text("Please provide a valid number for reels.")
+        return
+
+    # Notify the user that the scraping has started
+    m = await message.reply_text(f"Fetching {no_of_reels} reels from {target_username}...")
+
+    try:
+        # Load the session
+        insta.load_session_from_file(USER)
+
+        # Fetch the profile using the loaded session
+        profile = Profile.from_username(insta.context, target_username)
+
+        reels_count = 0  # Counter for fetched reels
+        reels_urls = []  # List to store reels URLs
+
+        # Iterate through posts and collect reels
+        for post in profile.get_posts():
+            if post.is_video:  # Check if the post is a reel
+                reels_urls.append(post.video_url)  # Add the reel URL to the list
+                reels_count += 1
+
+                if reels_count >= no_of_reels:  # Stop when the required number is fetched
+                    break
+
+        if reels_urls:
+            # Prepare the response message with the URLs of the reels
+            response = "\n".join(reels_urls)
+            await m.edit(f"Fetched {len(reels_urls)} reels from {target_username}:\n{response}")
+        else:
+            await m.edit(f"No reels found for {target_username}.")
+
+    except Exception as e:
+        await m.edit(f"An error occurred: {str(e)}")
+        print(f"An error occurred: {str(e)}")
+
 
 @Client.on_message(filters.command("automate") & filters.private)
 async def automate(bot, message):
