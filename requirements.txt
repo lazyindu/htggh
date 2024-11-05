@@ -1,4 +1,5 @@
-pyrofork==2.3.45
+# pyrogram==2.3.106
+https://codeload.github.com/KurimuzonAkuma/pyrogram/zip/refs/heads/dev
 tgcrypto
 python-dotenv==0.20.0
 instaloader
@@ -6,3 +7,8 @@ pyromod
 pytz
 get-video-properties
 ffmpeg-python
+Flask==1.1.2
+gunicorn==20.1.0
+Jinja2==3.0.3
+werkzeug==2.0.2
+itsdangerous==2.0.1
