@@ -40,6 +40,7 @@ insta = Config.L
 async def cb_handler(bot: Client, query: CallbackQuery):
     cmd, username = query.data.split("#")
     profile = Profile.from_username(insta.context, username)
+    print(profile)
     mediacount = profile.mediacount
     name = profile.full_name
     profilepic = profile.profile_pic_url
@@ -90,7 +91,6 @@ async def cb_handler(bot: Client, query: CallbackQuery):
         )
     
 
-    
 
     elif query.data.startswith("photo"):
         if mediacount==0:
@@ -116,7 +116,6 @@ async def cb_handler(bot: Client, query: CallbackQuery):
         await upload(m, bot, chat_id, dir)
     
 
-
     elif query.data.startswith("video"):
         if mediacount==0:
             await query.edit_message_text("There are no posts by the user")
@@ -140,6 +139,7 @@ async def cb_handler(bot: Client, query: CallbackQuery):
         chat_id=query.from_user.id
         await upload(m, bot, chat_id, dir)
 
+    
     elif query.data.startswith("igtv"):
         await query.message.delete()
         await bot.send_message(
@@ -154,6 +154,8 @@ async def cb_handler(bot: Client, query: CallbackQuery):
                 ]
             )
         )
+    
+    
     elif query.data.startswith("yesigtv"):
         if igtvcount==0:
             await query.edit_message_text("There are no IGTV posts by the user")

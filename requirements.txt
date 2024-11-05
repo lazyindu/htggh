@@ -1,5 +1,6 @@
 # pyrogram==2.3.106
-https://codeload.github.com/KurimuzonAkuma/pyrogram/zip/refs/heads/dev
+# https://codeload.github.com/KurimuzonAkuma/pyrogram/zip/refs/heads/dev
+pyrogram==2.0.106
 tgcrypto
 python-dotenv==0.20.0
 instaloader

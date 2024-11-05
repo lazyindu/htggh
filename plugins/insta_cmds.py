@@ -27,6 +27,7 @@ from instaloader import Profile
 from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong
 import os
 from utils import *
+import time
 
 USER=Config.USER
 OWNER=Config.OWNER
@@ -55,6 +56,43 @@ buttons=InlineKeyboardMarkup(
     ]
     )
 
+channels = {
+    "@real_MoviesAdda7": "filmygyan",
+    # "@telegram_channel_2": "instagram_page_2",
+    # Add more Instagram page - Telegram channel pairs as needed
+}
+def download_latest_reel(username):
+    profile = Profile.from_username(insta.context, username)
+    # profile = insta.Profile.from_username(L.context, username)
+    for post in profile.get_posts():
+        if post.is_video:
+            video_path = f"reels/{username}/{post.shortcode}.mp4"
+            if not os.path.exists(video_path):  # Check if reel has been downloaded before
+                os.makedirs(f"reels/{username}", exist_ok=True)
+                insta.download_post(post, target=f"reels/{username}")
+                return video_path
+    return None
+
+def post_reel_to_telegram(bot, channel_username, video_path, caption):
+    with bot:
+        try:
+            bot.send_video(channel_username, video_path, caption=caption)
+            print(f"Reel posted to {channel_username}")
+        except FloodWait as e:
+            print(f"Rate limit hit! Waiting for {e.x} seconds.")
+            time.sleep(e.x)
+
+@Client.on_message(filters.command("automate") & filters.private)
+async def automate_reels_posting(bot, message):
+    for channel, insta_page in channels.items():
+        video_path = download_latest_reel(insta_page)
+        if video_path:
+            post_reel_to_telegram(bot,channel, video_path, f"New reel from @{insta_page}!")
+        else:
+            print(f"No new reel found for {insta_page}")
+
+# Define dictionary of Instagram pages to Telegram channels
+
 
 
 
@@ -75,6 +113,7 @@ async def post(bot, message):
     if " " in text:
         cmd, username = text.split(' ')
         profile = Profile.from_username(insta.context, username)
+        print(profile)
         is_followed = yes_or_no(profile.followed_by_viewer) 
         type = acc_type(profile.is_private)
         if type == "🔒Private🔒" and is_followed == "No":
