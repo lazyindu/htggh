@@ -64,9 +64,11 @@ channels = {
 
 def download_latest_reel(username):
     profile = Profile.from_username(insta.context, username)
+    print(profile)
     for post in profile.get_posts():
         if post.is_video:
             video_path = f"reels/{username}/{post.shortcode}.mp4"
+            print(f"video_path=> {video_path}")
             if not os.path.exists(video_path):  # Check if reel has been downloaded before
                 os.makedirs(f"reels/{username}", exist_ok=True)
                 insta.download_post(post, target=f"reels/{username}")
@@ -75,6 +77,7 @@ def download_latest_reel(username):
 
 async def post_reel_to_telegram(bot, channel_username, video_path, caption):
     try:
+        print(f"trying to post reel to telegram")
         await bot.send_video(channel_username, video_path, caption=caption)  # Use await directly
         print(f"Reel posted to {channel_username}")
     except FloodWait as e:
@@ -83,8 +86,10 @@ async def post_reel_to_telegram(bot, channel_username, video_path, caption):
 
 @Client.on_message(filters.command("automate") & filters.private)
 async def automate_reels_posting(bot, message):
+    print(f"initilizing bot to automate")
     for channel, insta_page in channels.items():
         video_path = download_latest_reel(insta_page)
+        print(video_path)
         if video_path:
             await post_reel_to_telegram(bot, channel, video_path, f"New reel from @{insta_page}!")  # Use await
         else:
