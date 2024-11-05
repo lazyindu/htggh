@@ -1,4 +1,4 @@
-pyrogram==1.4.15
+pyrofork==2.3.45
 tgcrypto
 python-dotenv==0.20.0
 instaloader
