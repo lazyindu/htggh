@@ -28,6 +28,9 @@ from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong
 import os
 from utils import *
 import time
+from instaloader import Post
+from utils import download_insta, upload
+import asyncio
 
 USER=Config.USER
 OWNER=Config.OWNER
@@ -62,38 +65,144 @@ channels = {
     # Add more Instagram page - Telegram channel pairs as needed
 }
 
-def download_latest_reel(username):
-    profile = Profile.from_username(insta.context, username)
-    print(profile)
-    for post in profile.get_posts():
-        if post.is_video:
-            video_path = f"reels/{username}/{post.shortcode}.mp4"
-            print(f"video_path=> {video_path}")
-            if not os.path.exists(video_path):  # Check if reel has been downloaded before
-                os.makedirs(f"reels/{username}", exist_ok=True)
-                insta.download_post(post, target=f"reels/{username}")
-                return video_path
-    return None
 
-async def post_reel_to_telegram(bot, channel_username, video_path, caption):
-    try:
-        print(f"trying to post reel to telegram")
-        await bot.send_video(channel_username, video_path, caption=caption)  # Use await directly
-        print(f"Reel posted to {channel_username}")
-    except FloodWait as e:
-        print(f"Rate limit hit! Waiting for {e.x} seconds.")
-        await asyncio.sleep(e.x)  # Use asyncio.sleep for async waiting
 
 @Client.on_message(filters.command("automate") & filters.private)
-async def automate_reels_posting(bot, message):
-    print(f"initilizing bot to automate")
-    for channel, insta_page in channels.items():
-        video_path = download_latest_reel(insta_page)
-        print(video_path)
-        if video_path:
-            await post_reel_to_telegram(bot, channel, video_path, f"New reel from @{insta_page}!")  # Use await
-        else:
-            print(f"No new reel found for {insta_page}")
+async def automate(bot, message):
+    if str(message.from_user.id) != OWNER:
+        await message.reply_text("You are not authorized to use this command.")
+        return
+
+    # Specify the username you want to fetch reels from
+    target_username = "filmygyan"  # Replace this with the target username
+
+    # Notify the user that the automation has started
+    m = await message.reply_text(f"Fetching reels from {target_username}...")
+
+    # Fetch the profile using Instaloader
+    profile = Profile.from_username(insta.context, target_username)
+
+    # Loop through the posts in the profile
+    try:
+        reels_count = 0  # Counter for fetched reels
+        for post in profile.get_posts():
+            # Check if the post is a reel (Instagram Reels are video posts)
+            if post.is_video:
+                reels_count += 1
+                # Download the reel
+                command = ['instaloader', f'--no-captions', f'--no-metadata-json', f'--no-profile-pic', f'--no-video-thumbnails', f'--dirname-pattern={USER}/reels', post.shortcode]
+                await download_insta(command, m, f"{USER}/reels")
+                
+                # After downloading, upload to Telegram
+                await upload(m, bot, message.from_user.id, f"{USER}/reels/{post.shortcode}.mp4")
+                
+            # Optionally, you can break after fetching a specific number of reels if desired
+            if reels_count >= 5:  # Change this number as needed
+                break
+
+        await m.edit(f"Successfully fetched {reels_count} reels from {target_username}.")
+
+    except Exception as e:
+        await m.edit(f"An error occurred: {str(e)}")
+
+
+# @Client.on_message(filters.command("automate"))
+# async def automate_handler(client, message):
+#     # Step 1: Verify the user and check if they have the required permissions
+#     # if not is_user_authorized(message.from_user.id):
+#     #     await message.reply("You are not authorized to use this command.")
+#     #     return
+    
+#     # Step 2: Prompt for Instagram username
+#     await message.reply("Please enter the Instagram username you want to automate reels for:")
+    
+#     # Step 3: Wait for the user's response with the username
+#     username_response = await client.wait_for_message(chat_id=message.chat.id, reply_to_message_id=message.message_id)
+#     username = username_response.text.strip()
+
+#     # Step 4: Confirm the automation process
+#     confirm_markup = InlineKeyboardMarkup(
+#         [[InlineKeyboardButton("Yes", callback_data=f"confirm_automate#{username}"),
+#           InlineKeyboardButton("No", callback_data="cancel_automate")]]
+#     )
+#     await message.reply(f"You've selected: {username}. Do you want to proceed?", reply_markup=confirm_markup)
+
+# @Client.on_callback_query(filters.regex(r"confirm_automate#"))
+# async def confirm_automate_callback(client, callback_query):
+#     username = callback_query.data.split("#")[1]
+    
+#     await callback_query.answer()  # Acknowledge the callback
+    
+#     # Step 5: Start the automation process
+#     await callback_query.message.edit_text(f"Starting automation for {username}...")
+
+#     # Implement your logic to fetch and post Instagram reels here
+#     # This could involve setting up a scheduled task or a loop to fetch reels periodically
+#     await automate_instagram_reels(username)
+
+# async def automate_instagram_reels(username):
+#     while True:
+#         # Fetch reels from the specified Instagram username
+#         reels = await fetch_instagram_reels(username)
+#         print(f"Loaded reels : {reels}")
+#         if reels:
+#             for reel in reels:
+#                 # Step 6: Post each reel to the specified Telegram channels
+#                 print("Posting reel to tg")
+#                 await post_to_telegram_channels(reel)
+#                 print(f"Posting Done ✅")
+#                 print(f"----------")
+#                 await asyncio.sleep(5)
+#                 print(f"Waiting to 5 sec 🍟")
+#                 print(f"----------")
+        
+#         # Wait for a specified duration before fetching new reels (e.g., 1 hour)
+#         await asyncio.sleep(3600)  # Adjust the duration as needed
+#         print(f"Waiting to 5 sec 🍟")
+# async def fetch_instagram_reels(username):
+#     # Your logic to fetch reels from Instagram using instaloader or similar library
+#     # Return a list of reels (URLs or file paths)
+#     return []  # Replace with actual fetched reels
+
+# async def post_to_telegram_channels(reel):
+#     # Your logic to send the reel to the three Telegram channels
+#     channels = ['channel1_id', 'channel2_id', 'channel3_id']
+#     for channel in channels:
+#         await client.send_video(chat_id=channel, video=reel)  # Adjust parameters as needed
+
+
+# def download_latest_reel(username):
+#     profile = Profile.from_username(insta.context, username)
+#     print(profile)
+#     for post in profile.get_posts():
+#         if post.is_video:
+#             video_path = f"reels/{username}/{post.shortcode}.mp4"
+#             print(f"video_path=> {video_path}")
+#             if not os.path.exists(video_path):  # Check if reel has been downloaded before
+#                 os.makedirs(f"reels/{username}", exist_ok=True)
+#                 insta.download_post(post, target=f"reels/{username}")
+#                 return video_path
+#     return None
+
+# async def post_reel_to_telegram(bot, channel_username, video_path, caption):
+#     try:
+#         print(f"trying to post reel to telegram")
+#         await bot.send_video(channel_username, video_path, caption=caption)  # Use await directly
+#         print(f"Reel posted to {channel_username}")
+#     except FloodWait as e:
+#         print(f"Rate limit hit! Waiting for {e.x} seconds.")
+#         await asyncio.sleep(e.x)  # Use asyncio.sleep for async waiting
+
+# @Client.on_message(filters.command("automate") & filters.private)
+# async def automate_reels_posting(bot, message):
+#     print(f"initilizing bot to automate")
+#     for channel, insta_page in channels.items():
+#         video_path = download_latest_reel(insta_page)
+#         print(video_path)
+#         if video_path:
+#             await post_reel_to_telegram(bot, channel, video_path, f"New reel from @{insta_page}!")  # Use await
+#         else:
+#             print(f"No new reel found for {insta_page}")
 
 
 @Client.on_message(filters.command("posts") & filters.private)
