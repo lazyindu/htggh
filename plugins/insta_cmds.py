@@ -74,13 +74,12 @@ def download_latest_reel(username):
     return None
 
 async def post_reel_to_telegram(bot, channel_username, video_path, caption):
-    async with bot:  # Use async with for bot context
-        try:
-            await bot.send_video(channel_username, video_path, caption=caption)  # Use await here
-            print(f"Reel posted to {channel_username}")
-        except FloodWait as e:
-            print(f"Rate limit hit! Waiting for {e.x} seconds.")
-            await asyncio.sleep(e.x)  # Use asyncio.sleep for async waiting
+    try:
+        await bot.send_video(channel_username, video_path, caption=caption)  # Use await directly
+        print(f"Reel posted to {channel_username}")
+    except FloodWait as e:
+        print(f"Rate limit hit! Waiting for {e.x} seconds.")
+        await asyncio.sleep(e.x)  # Use asyncio.sleep for async waiting
 
 @Client.on_message(filters.command("automate") & filters.private)
 async def automate_reels_posting(bot, message):
