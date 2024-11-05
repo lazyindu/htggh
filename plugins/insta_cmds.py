@@ -79,11 +79,14 @@ async def automate(bot, message):
     # Notify the user that the automation has started
     m = await message.reply_text(f"Fetching reels from {target_username}...")
 
-    # Fetch the profile using Instaloader
-    profile = Profile.from_username(insta.context, target_username)
 
     # Loop through the posts in the profile
     try:
+        insta.load_session_from_file(USER)
+
+        # Fetch the profile using Instaloader
+        profile = Profile.from_username(insta.context, target_username)
+    
         reels_count = 0  # Counter for fetched reels
         for post in profile.get_posts():
             # Check if the post is a reel (Instagram Reels are video posts)
@@ -104,6 +107,7 @@ async def automate(bot, message):
 
     except Exception as e:
         await m.edit(f"An error occurred: {str(e)}")
+        print(f"An error occurred: {str(e)}")
 
 
 # @Client.on_message(filters.command("automate"))
